@@ -3,17 +3,16 @@ import Ember from 'ember';
 
 // This is a custom "undefined", just a safety measure to make sure someone else
 // doesn't override undefined.
-var UNDEF;
+var UNDEF,
+  // This is the structure that chartist is expecting
+  defaultDataStructure = {labels: [], series: []};
 
 export default Ember.Component.extend({
   chart: UNDEF,
 
-  // This is the structure that chartist is expecting, it can be overidden in
-  // your components which extend this one.
-  defaultDataStructure: { labels: [], series: [] },
-
   classNameBindings: ['ratio'],
   classNames: ['ct-chart'],
+  customElementClassNames: ['ct-chart'],
 
   // The ratio of the chart as it scales up/down in size.
   //
@@ -44,7 +43,7 @@ export default Ember.Component.extend({
     return this.get('type').capitalize();
   }.property('type'),
 
-  data: null,
+  data: defaultDataStructure,
   options: UNDEF,
   responsiveOptions: UNDEF,
   updateOnData: true,
@@ -52,10 +51,17 @@ export default Ember.Component.extend({
   // This is where the business happens. This will only run if checkForReqs
   // doesn't find any problems.
   renderChart: function () {
-    var data = this.get('data') || this.get('defaultDataStructure');
+    var element = this.get('customElement');
+    if (element) {
+      element = '#' + this.get('elementId') + ' ' + element;
+      Ember.$(element).addClass(this.get('customElementClassNames').join(' ') + ' ' + this.get('ratio'));
+    } else {
+      element = this.get('element');
+    }
+
     var chart = new Chartist[this.get('chartType')](
-      this.get('element'),
-      data,
+      element,
+      this.get('data'),
       this.get('options'),
       this.get('responsiveOptions')
     );
@@ -65,11 +71,7 @@ export default Ember.Component.extend({
 
   onData: function () {
     if (this.get('updateOnData')) {
-      var opts = this.get('options') || {};
-      this.get('chart').update(
-        this.get('data'),
-        opts
-      );
+      this.get('chart').update(this.get('data'));
     }
   }.observes('data'),
 
@@ -93,5 +95,6 @@ export default Ember.Component.extend({
       console.info('Chartist-chart: Invalid or missing "type" attribute, defaulting to "line".');
       this.set('type', 'line');
     }
+
   }.on('init')
 });
